@@ -1,103 +1,40 @@
-const LS_KEY = 'opendash-user-adapter-local-data';
+export default config => done => {
+  const LS_KEY = (config && config.lsKey) ? config.lsKey : 'opendash-user-adapter-local-data';
 
-export default class User {
+  let user = {};
+  let cache = JSON.parse(localStorage.getItem(LS_KEY)) || {};
 
-  static $inject = ['$q', 'lodash', 'od.notification.service'];
+  done();
 
-  constructor($q, $lodash, $notification) {
+  return {
+    login: (user, pass) => (resolve, reject) => {
+      resolve(user);
+    },
 
-    // Dependencies werden zugänglich gemacht.
-    this.$q = $q;
-    this.$notification = $notification;
-    this.$lodash = $lodash;
-    
-    this.loading = false;
+    logout: () => (resolve, reject) => {
+      resolve();
+    },
 
-    // Hier wird der aktuelle Nutzer gespeichert:
-    this.current = {};
+    register: (credentials) => (resolve, reject) => {
+      resolve(user);
+    },
 
-    this.data = JSON.parse(localStorage.getItem(LS_KEY)) || {};
-  }
+    checkAuth: () => (resolve, reject) => {
+      resolve(user);
+    },
 
-  login(credentials) {
-    // Promise erstellen
-    const deferred = this.$q.defer();
+    getData: (key) => (resolve, reject) => {
+      if (cache && cache[key]) {
+        resolve(JSON.stringify(cache[key]));
+      } else {
+        resolve(null);
+      }
+    },
 
-    // Hier eine Dummy Implementierung
-    deferred.resolve(this.current);
-
-    // Erstelltes Promise zurückgeben
-    return deferred.promise;
-  }
-
-  logout() {
-    this.$notification.create("Ausloggen wird nicht unterstützt.");
-  }
-
-  register(credentials) {
-    // Promise erstellen
-    const deferred = this.$q.defer();
-
-    // Hier eine Dummy Implementierung
-    deferred.resolve(this.current);
-
-    // Erstelltes Promise zurückgeben
-    return deferred.promise;
-  }
-
-  checkAuth() {
-    // Promise erstellen
-    const deferred = this.$q.defer();
-
-    // Nutzer ist im LS Adapter immer eingeloggt.
-    deferred.resolve(true);
-
-    // Erstelltes Promise zurückgeben
-    return deferred.promise;
-  }
-
-  checkAuthSync() {
-    return true; // Nutzer ist im LS Adapter immer eingeloggt.
-  }
-
-  getData(key) {
-    // Promise erstellen
-    const deferred = this.$q.defer();
-
-    // Falls der Key existiert, wird er zurück gegeben.
-    if(this.data.hasOwnProperty(key)) {
-      deferred.resolve(this.$lodash.cloneDeep(this.data[key]));
-    } else {
-      deferred.resolve(null);
-    }
-
-    // Erstelltes Promise zurückgeben
-    return deferred.promise;
-  }
-
-  setData(key, value) {
-    // Promise erstellen
-    const deferred = this.$q.defer();
-
-    // Hier eine Dummy Implementierung
-    this.data[key] = this.$lodash.cloneDeep(value);
-
-    localStorage.setItem(LS_KEY, JSON.stringify(this.data));
-
-    deferred.resolve(null);
-
-    // Erstelltes Promise zurückgeben
-    return deferred.promise;
-  }
-
-  wait() {
-    // Promise erstellen
-    const deferred = this.$q.defer();
-
-    // Hier eine Dummy Implementierung
-    deferred.resolve(this.current);
-
-    // Erstelltes Promise zurückgeben
-    return deferred.promise;
+    setData: (key, value) => (resolve, reject) => {
+      cache[key] = JSON.parse(value);
+      localStorage.setItem(LS_KEY, JSON.stringify(cache));
+      resolve(true);
+    },
   }
 }
