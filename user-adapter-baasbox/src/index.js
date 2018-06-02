@@ -1,108 +1,124 @@
 import BaasBox from 'baasbox';
 
-export default config => done => {
+let current = null;
+let cache = {};
 
-  const BassBoxEndPoint = config.endpoint;
-  const BassBoxAppCode = config.appCode;
-  const BassBoxCollection = config.collection;
+let BassBoxEndPoint;
+let BassBoxAppCode;
+let BassBoxCollection;
 
-  // BaasBox Setup
-  BaasBox.setEndPoint(BassBoxEndPoint);
-  BaasBox.appcode = BassBoxAppCode;
+export default class UserAdapter {
 
-  // Hier wird der aktuelle Nutzer gespeichert:
-  let current = null;
-  let cache = {};
+    constructor(config) {
+        BassBoxEndPoint = config.endpoint;
+        BassBoxAppCode = config.appCode;
+        BassBoxCollection = config.collection;
 
-  done();
+        // BaasBox Setup
+        BaasBox.setEndPoint(BassBoxEndPoint);
+        BaasBox.appcode = BassBoxAppCode;
+    }
 
-  return {
+    init() {
+        return new Promise((resolve, reject) => {
 
-    login: (user, pass) => (resolve, reject) => {
-      // BaasBox Login:
-      BaasBox.login(user, pass)
-        .done(response => {
-          resolve(null);
-        })
-        .fail(error => {
-          reject(new Error('Bad username or password.'));
         });
-    },
+    }
 
-    logout: () => (resolve, reject) => {
-      BaasBox.logout()
-        .done(res => {
-          resolve();
-        })
-        .fail(error => {
-          reject();
+    login(user, pass) {
+        return new Promise((resolve, reject) => {
+            // BaasBox Login:
+            BaasBox.login(user, pass)
+                .done(response => {
+                    resolve(null);
+                })
+                .fail(error => {
+                    reject(new Error('Bad username or password.'));
+                });
         });
-    },
+    }
 
-    checkAuth: () => (resolve, reject) => {
-      if (current) {
-        return resolve(current);
-      }
+    logout() {
+        return new Promise((resolve, reject) => {
+            BaasBox.logout()
+                .done(res => {
+                    resolve();
+                })
+                .fail(error => {
+                    reject();
+                });
+        });
+    }
 
-      BaasBox.fetchCurrentUser().then(
-        response => {
-          let user = {};
-          user.id = response.data.id;
-          user.name = response.data.user.name;
-
-          BaasBox.loadCollectionWithParams(BassBoxCollection, { where: "user='" + user.id + "'" }).then(
-            response => {
-              if (response.length > 0) {
-                cache = response[0];
-                current = user;
-                resolve(current);
-              } else {
-                BaasBox.save({ user: user.id }, BassBoxCollection).then(
-                  response => {
-                    cache = response;
-                    current = user;
-                    resolve(current);
-                  },
-                  error => {
-                    reject(null);
-                  }
-                );
-              }
-            },
-            error => {
-              reject(null);
+    checkAuth() {
+        return new Promise((resolve, reject) => {
+            if (current) {
+                return resolve(current);
             }
-          );
-        },
-        error => {
-          reject(null);
-        }
-      );
-    },
 
-    getData: (key) => (resolve, reject) => {
-      // Falls der Key existiert, wird er zurück gegeben.
-      if (cache && cache.hasOwnProperty(key)) {
-        resolve(JSON.stringify(cache[key]));
-      } else {
-        reject(null);
-      }
-    },
+            BaasBox.fetchCurrentUser().then(
+                response => {
+                    let user = {};
+                    user.id = response.data.id;
+                    user.name = response.data.user.name;
 
-    setData: (key, value) => (resolve, reject) => {
-      if (cache == null) cache = {};
+                    BaasBox.loadCollectionWithParams(BassBoxCollection, { where: "user='" + user.id + "'" }).then(
+                        response => {
+                            if (response.length > 0) {
+                                cache = response[0];
+                                current = user;
+                                resolve(current);
+                            } else {
+                                BaasBox.save({ user: user.id }, BassBoxCollection).then(
+                                    response => {
+                                        cache = response;
+                                        current = user;
+                                        resolve(current);
+                                    },
+                                    error => {
+                                        reject(null);
+                                    }
+                                );
+                            }
+                        },
+                        error => {
+                            reject(null);
+                        }
+                    );
+                },
+                error => {
+                    reject(null);
+                }
+            );
+        });
+    }
 
-      cache[key] = JSON.parse(value);
+    getData(key) {
+        return new Promise((resolve, reject) => {
+            // Falls der Key existiert, wird er zurück gegeben.
+            if (cache && cache.hasOwnProperty(key)) {
+                resolve(JSON.stringify(cache[key]));
+            } else {
+                reject(null);
+            }
+        });
+    }
 
-      BaasBox.save(cache, BassBoxCollection).then(
-        response => {
-          cache = response;
-          resolve(null);
-        },
-        err => {
-          reject(null);
-        },
-      );
-    },
-  }
+    setData(key, value) {
+        return new Promise((resolve, reject) => {
+            if (cache == null) cache = {};
+
+            cache[key] = JSON.parse(value);
+
+            BaasBox.save(cache, BassBoxCollection).then(
+                response => {
+                    cache = response;
+                    resolve(null);
+                },
+                err => {
+                    reject(null);
+                },
+            );
+        });
+    }
 }

@@ -1,40 +1,46 @@
-export default config => done => {
-  const LS_KEY = (config && config.lsKey) ? config.lsKey : 'opendash-user-adapter-local-data';
+let LS_KEY;
+let cache;
 
-  let user = {};
-  let cache = JSON.parse(localStorage.getItem(LS_KEY)) || {};
+let user = {};
 
-  done();
+export default class UserAdapter {
 
-  return {
-    login: (user, pass) => (resolve, reject) => {
-      resolve(user);
-    },
+    constructor(config) {
+        LS_KEY = (config && config.lsKey) ? config.lsKey : 'opendash-user-adapter-local-data';
+        cache = JSON.parse(localStorage.getItem(LS_KEY)) || {};
+    }
 
-    logout: () => (resolve, reject) => {
-      resolve();
-    },
+    async init() {
 
-    register: (credentials) => (resolve, reject) => {
-      resolve(user);
-    },
+    }
 
-    checkAuth: () => (resolve, reject) => {
-      resolve(user);
-    },
+    async login(user, pass) {
+        return user;
+    }
 
-    getData: (key) => (resolve, reject) => {
-      if (cache && cache[key]) {
-        resolve(JSON.stringify(cache[key]));
-      } else {
-        resolve(null);
-      }
-    },
+    async logout() {
+        return;
+    }
 
-    setData: (key, value) => (resolve, reject) => {
-      cache[key] = JSON.parse(value);
-      localStorage.setItem(LS_KEY, JSON.stringify(cache));
-      resolve(true);
-    },
-  }
+    async register(credentials) {
+        return user;
+    }
+
+    async checkAuth() {
+        return user;
+    }
+
+    async getData(key) {
+        if (cache && cache[key]) {
+            return JSON.stringify(cache[key]);
+        } else {
+            return null;
+        }
+    }
+
+    async setData(key, value) {
+        cache[key] = JSON.parse(value);
+        localStorage.setItem(LS_KEY, JSON.stringify(cache));
+        return true;
+    }
 }
